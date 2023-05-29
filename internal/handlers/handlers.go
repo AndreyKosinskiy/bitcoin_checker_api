@@ -39,8 +39,13 @@ func (that *Handler) Rate(c *gin.Context) {
 }
 
 func (that *Handler) Subscription(c *gin.Context) {
-
-	c.IndentedJSON(http.StatusOK, that.repository)
+	email := c.PostForm("email")
+	err := that.repository.Write(email)
+	if err != nil {
+		c.IndentedJSON(http.StatusConflict, email)
+		return
+	}
+	c.IndentedJSON(http.StatusOK, "E-mail додано")
 }
 
 func (that *Handler) SendMail(c *gin.Context) {
