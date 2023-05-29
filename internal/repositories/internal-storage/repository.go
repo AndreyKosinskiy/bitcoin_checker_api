@@ -1,0 +1,47 @@
+package internal_storage
+
+import (
+	"bitcoin_checker_api/config"
+	"bitcoin_checker_api/internal/models"
+	"bitcoin_checker_api/internal/repositories"
+	"fmt"
+	"github.com/pelletier/go-toml/v2"
+	"log"
+	"os"
+)
+
+type InternalStorageRepository struct {
+	records    []*models.User
+	recordsMap map[*models.User]struct{}
+}
+
+func NewInternalStorageRepository(cfg *config.Config) (repositories.Repository, error) {
+	isr := &InternalStorageRepository{}
+	f, err := os.ReadFile(cfg.InternalStorage.Path)
+	if err != nil {
+		// failed to create/open the file
+		log.Fatal(err)
+		return nil, err
+	}
+
+	if err := toml.Unmarshal(f, isr); err != nil {
+		// failed to encode
+		log.Fatal(err)
+		return nil, err
+	}
+
+	for _, record := range isr.records {
+		isr.recordsMap[record] = struct{}{}
+	}
+
+	return isr, nil
+}
+
+func (that *InternalStorageRepository) Write(email string) error {
+	newUser := models.NewUser(email)
+	if _, ok := that.recordsMap[newUser]; !ok {
+		that.records = append(that.records, newUser)
+		return nil
+	}
+	return fmt.Errorf("e-mail вже є в базі даних")
+}
