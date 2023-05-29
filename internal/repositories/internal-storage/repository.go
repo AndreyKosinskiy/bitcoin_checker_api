@@ -13,6 +13,7 @@ import (
 type InternalStorageRepository struct {
 	records    []*models.User
 	recordsMap map[*models.User]struct{}
+	cfg        *config.Config
 }
 
 func NewInternalStorageRepository(cfg *config.Config) (repositories.Repository, error) {
@@ -34,6 +35,8 @@ func NewInternalStorageRepository(cfg *config.Config) (repositories.Repository, 
 		isr.recordsMap[record] = struct{}{}
 	}
 
+	isr.cfg = cfg
+
 	return isr, nil
 }
 
@@ -41,6 +44,14 @@ func (that *InternalStorageRepository) Write(email string) error {
 	newUser := models.NewUser(email)
 	if _, ok := that.recordsMap[newUser]; !ok {
 		that.records = append(that.records, newUser)
+		newRecords, err := toml.Marshal(that.records)
+		if err != nil {
+			panic(err)
+		}
+		err = os.WriteFile(that.cfg.InternalStorage.Path, newRecords, 0644)
+		if err != nil {
+			panic(err)
+		}
 		return nil
 	}
 	return fmt.Errorf("e-mail вже є в базі даних")
