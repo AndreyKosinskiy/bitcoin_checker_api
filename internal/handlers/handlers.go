@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
+	"net/smtp"
 )
 
 type Handler struct {
@@ -22,20 +23,52 @@ func NewHandler(cfg *config.Config, repository repositories.Repository) *Handler
 	}
 }
 
-func (that *Handler) Rate(c *gin.Context) {
-	fmt.Println("In rate")
+func rate(cfg *config.Config) (string, error) {
 	converter := models.NewConverter()
-	requestURL := fmt.Sprintf("%s%s", that.cfg.Converter.Endpoint, converter.GetQueryParams())
-
-	fmt.Println(requestURL)
+	requestURL := fmt.Sprintf("%s%s", cfg.Converter.Endpoint, converter.GetQueryParams())
 	res, err := http.Get(requestURL)
+	if err != nil {
+		return "", err
+	}
+	body, _ := io.ReadAll(res.Body)
+	res.Body.Close()
+	return fmt.Sprintf("%s", body), nil
+}
+
+func sendMail(email, data string) {
+	from := "from@gmail.com"
+	password := "<Email Password>"
+
+	// Receiver email address.
+	to := []string{
+		email,
+	}
+
+	// smtp server configuration.
+	smtpHost := "smtp.gmail.com"
+	smtpPort := "587"
+
+	// Message.
+	message := []byte(data)
+
+	// Authentication.
+	auth := smtp.PlainAuth("", from, password, smtpHost)
+
+	// Sending email.
+	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, message)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+}
+
+func (that *Handler) Rate(c *gin.Context) {
+	data, err := rate(that.cfg)
 	if err != nil {
 		c.IndentedJSON(http.StatusBadRequest, "Invalid status value")
 		return
 	}
-	body, _ := io.ReadAll(res.Body)
-	res.Body.Close()
-	c.IndentedJSON(http.StatusOK, fmt.Sprintf("%s", body))
+	c.IndentedJSON(http.StatusOK, data)
 }
 
 func (that *Handler) Subscription(c *gin.Context) {
@@ -49,5 +82,10 @@ func (that *Handler) Subscription(c *gin.Context) {
 }
 
 func (that *Handler) SendMail(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, that.repository)
+	users := that.repository.ReadAll()
+	data, _ := rate(that.cfg)
+	for _, user := range users {
+		sendMail(user.Email, data)
+	}
+	c.IndentedJSON(http.StatusOK, "E-mailʼи відправлено")
 }

@@ -45,3 +45,7 @@ func (that *InternalStorageRepository) Write(email string) error {
 	}
 	return fmt.Errorf("e-mail вже є в базі даних")
 }
+
+func (that *InternalStorageRepository) ReadAll() []*models.User {
+	return that.records
+}
