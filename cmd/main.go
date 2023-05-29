@@ -26,7 +26,7 @@ func main() {
 	{
 		v1.GET("/rate", handler.Rate)
 		v1.POST("/subscription", handler.Subscription)
-		// v1.POST("/sendEmails", handler.SendEmail)
+		v1.POST("/sendEmails", handler.SendEmail)
 	}
 
 	router.Run("localhost:8080")

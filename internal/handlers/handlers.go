@@ -81,7 +81,7 @@ func (that *Handler) Subscription(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, "E-mail додано")
 }
 
-func (that *Handler) SendMail(c *gin.Context) {
+func (that *Handler) SendEmail(c *gin.Context) {
 	users := that.repository.ReadAll()
 	data, _ := rate(that.cfg)
 	for _, user := range users {
